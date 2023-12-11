@@ -41,10 +41,8 @@ router.post(
       res.status(201).json({
         message: "Post added successfully",
         post: {
+          ...createdPost,
           id: createdPost._id,
-          title: createdPost.title,
-          content: createdPost.content,
-          imagePath: createdPost.imagePath,
         },
       });
     });
@@ -67,19 +65,31 @@ router.put(
     });
     console.log(post);
     Post.updateOne({ _id: req.params.id }, post).then((result) => {
-      console.log(result);
       res.status(200).json({ message: "Update successful!" });
     });
   }
 );
 
 router.get("", (req, res, next) => {
-  Post.find().then((documents) => {
-    res.status(200).json({
-      message: "Posts fetched successfully!",
-      posts: documents,
+  const pageSize = +req.query.pagesize;
+  const currentPage = +req.query.page;
+  const postQuery = Post.find();
+  let fetchedPosts;
+  if (pageSize && currentPage) {
+    postQuery.skip(pageSize * (currentPage - 1)).limit(pageSize);
+  }
+  postQuery
+    .then((documents) => {
+      fetchedPosts = documents;
+      return Post.count();
+    })
+    .then((count) => {
+      res.status(200).json({
+        message: "Posts fetched successfully!",
+        posts: fetchedPosts,
+        maxPosts: count,
+      });
     });
-  });
 });
 
 router.get("/:id", (req, res, next) => {
