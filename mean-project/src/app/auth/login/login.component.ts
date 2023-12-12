@@ -1,3 +1,4 @@
+import { NgForm } from '@angular/forms';
 import { Component } from '@angular/core';
 
 @Component({
@@ -6,4 +7,6 @@ import { Component } from '@angular/core';
 })
 export class LoginComponent {
   isLoading = false;
+
+  onLogin(form: NgForm) {}
 }
