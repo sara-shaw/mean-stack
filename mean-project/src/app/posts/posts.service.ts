@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Subject, map } from 'rxjs';
+import { Subject } from 'rxjs';
+import { map } from 'rxjs/operators';
 import { Router } from '@angular/router';
 
 import { Post } from './post.model';
@@ -8,7 +9,7 @@ import { Post } from './post.model';
 @Injectable({ providedIn: 'root' })
 export class PostsService {
   private posts: Post[] = [];
-  private postsUpdated = new Subject<{posts: Post[], postCount: number}>();
+  private postsUpdated = new Subject<{ posts: Post[]; postCount: number }>();
 
   constructor(private http: HttpClient, private router: Router) {}
 
@@ -20,20 +21,34 @@ export class PostsService {
       )
       .pipe(
         map((postData) => {
-          return { posts: postData.posts.map(
-            (post: { title: any; content: any; _id: any; imagePath: any }) => {
-              return {
-                title: post.title,
-                content: post.content,
-                id: post._id,
-                imagePath: post.imagePath,
-              };
-            }), maxPosts: postData.maxPosts};
+          return {
+            posts: postData.posts.map(
+              (post: {
+                title: any;
+                content: any;
+                _id: any;
+                imagePath: any;
+                creator: any;
+              }) => {
+                return {
+                  title: post.title,
+                  content: post.content,
+                  id: post._id,
+                  imagePath: post.imagePath,
+                  creator: post.creator,
+                };
+              }
+            ),
+            maxPosts: postData.maxPosts,
+          };
         })
       )
       .subscribe((transformedPostData) => {
         this.posts = transformedPostData.posts;
-        this.postsUpdated.next({ posts: [...this.posts], postCount: transformedPostData.maxPosts });
+        this.postsUpdated.next({
+          posts: [...this.posts],
+          postCount: transformedPostData.maxPosts,
+        });
       });
   }
 
@@ -47,6 +62,7 @@ export class PostsService {
       title: string;
       content: string;
       imagePath: string;
+      creator: string;
     }>('http://localhost:3000/api/posts/' + id);
   }
 
@@ -79,6 +95,7 @@ export class PostsService {
         title: title,
         content: content,
         imagePath: image,
+        creator: '',
       };
     }
     this.http
@@ -89,7 +106,6 @@ export class PostsService {
   }
 
   deletePost(postId: string) {
-    return this.http
-      .delete('http://localhost:3000/api/posts/' + postId);
+    return this.http.delete('http://localhost:3000/api/posts/' + postId);
   }
 }

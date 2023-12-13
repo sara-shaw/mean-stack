@@ -38,6 +38,7 @@ router.post(
       title: req.body.title,
       content: req.body.content,
       imagePath: url + "/images/" + req.file.filename,
+      creator: req.userData.userId,
     });
     post.save().then((createdPost) => {
       res.status(201).json({
@@ -56,6 +57,7 @@ router.put(
   checkAuth,
   multer({ storage: storage }).single("image"),
   (req, res, next) => {
+    let imagePath = req.body.imagePath;
     if (req.file) {
       const url = req.protocol + "://" + req.get("host");
       imagePath = url + "/images/" + req.file.filename;
@@ -65,10 +67,17 @@ router.put(
       title: req.body.title,
       content: req.body.content,
       imagePath: imagePath,
+      creator: req.userData.userId,
     });
-    console.log(post);
-    Post.updateOne({ _id: req.params.id }, post).then((result) => {
-      res.status(200).json({ message: "Update successful!" });
+    Post.updateOne(
+      { _id: req.params.id, creator: req.userData.userId },
+      post
+    ).then((result) => {
+      if (result.modifiedCount > 0) {
+        res.status(200).json({ message: "Update successful!" });
+      } else {
+        res.status(401).json({ message: "Not authorized!" });
+      }
     });
   }
 );
@@ -84,7 +93,7 @@ router.get("", (req, res, next) => {
   postQuery
     .then((documents) => {
       fetchedPosts = documents;
-      //return Post.count();
+      return Post.count();
     })
     .then((count) => {
       res.status(200).json({
@@ -100,16 +109,22 @@ router.get("/:id", (req, res, next) => {
     if (post) {
       res.status(200).json(post);
     } else {
-      res.status(400).json({ message: "Post not found!" });
+      res.status(404).json({ message: "Post not found!" });
     }
   });
 });
 
 router.delete("/:id", checkAuth, (req, res, next) => {
-  Post.deleteOne({ _id: req.params.id }).then((result) => {
-    console.log(result);
-    res.status(200).json({ message: "Post deleted!" });
-  });
+  Post.deleteOne({ _id: req.params.id, creator: req.userData.userId }).then(
+    (result) => {
+      console.log(result);
+      if (result.deletedCount > 0) {
+        res.status(200).json({ message: "Deletion successful!" });
+      } else {
+        res.status(401).json({ message: "Not authorized!" });
+      }
+    }
+  );
 });
 
 module.exports = router;
